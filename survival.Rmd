@@ -1,0 +1,88 @@
+---
+title: "suvival_diabetes"
+author: "Zoe Zhu"
+date: "7/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message = FALSE, warning = FALSE)
+```
+
+## Diabetes patients with COVID
+### load libraries
+```{r libraries}
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(survival)
+library(survminer)
+```
+
+
+##Read data
+```{r read data, echo=FALSE}
+data= read.csv('data/dfnew1.csv')
+#data
+```
+
+```{r, agegroup, echo= FALSE}
+data<- data  %>% mutate (AGEGROUP = ifelse(data$PatientAge >=70, "AgeGroup>=70", "AgeGroup<70"))
+
+data$AGEGROUP <- factor(data$AGEGROUP)
+
+```
+## create length of days as time object
+```{r univariate length of stays}
+# Fit survival data using the Kaplan-Meier method
+surv_object <- Surv(time = data$LOSDays, event = data$status_encoded)
+#surv_object 
+```
+## Look at the univariate result of HbA1c group
+```{r univariate clustera1c}
+clustera1c <- survfit(surv_object ~ data$clusterhba1c, data = data)
+# ggsurvplot(clustera1c, data = data, pval = TRUE)
+```
+
+##survival fit on age
+
+```{r univariate age}
+# Examine prdictive value of residual disease status
+fit2 <- survfit(surv_object ~ data$AGEGROUP, data = data)
+ggsurvplot(fit2, data = data, pval = TRUE)
+```
+
+##survival fit on gender
+
+```{r gender univariate}
+#Fit GENDER  survival data using the Kaplan-Meier method
+fitgender <- survfit(surv_object ~ data$Gender, data = data)
+tiff("gender.tiff", units="in", width=7, height=5, res=300)
+ggsurvplot(fitgender, data = data, pval = TRUE)
+dev.off()
+```
+## survival fit on HTN 
+
+```{r figures}
+# Fit survival data using the Kaplan-Meier method
+#tiff("CAD.tiff", units="in", width=7, height=5, res=300)
+fit_HTN <- survfit(surv_object ~ data$HTN, data = data)
+ggsurvplot(fit_HTN, data = data, pval = TRUE)
+#dev.off()
+```
+
+```{r univariate age summary}
+#summary(coxph(Surv(LOSDays, status_encoded) ~ Gender, data = data))
+```
+
+multivaraite hazard model and forest plot
+```{r fit coxph}
+fit.coxph2 <- coxph(surv_object ~ Gender + AGEGROUP + CKD +MechanicalVent + MI+
+                      COPD+CHF,data = data)
+ggforest(fit.coxph2, data = data)
+summary(fit.coxph2)
+
+```
+
+
+
